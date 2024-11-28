@@ -1,6 +1,7 @@
+// app/lib/notes.ts
 "use client";
 import { supabase } from "./supabase";
-import { Database } from "../types/supabase";
+import type { Note } from "@/app/types/note";
 
 export interface CreateNoteInput {
   userId: string;
@@ -8,7 +9,12 @@ export interface CreateNoteInput {
   title: string;
   content: string;
   keywords?: string[];
-  metadata?: Record<string, any>;
+  metadata: {
+    source: "telegram" | "web" | "api";
+    chat_id?: string;
+    ai_summary?: string;
+    language?: string;
+  };
 }
 
 export interface UpdateNoteInput {
@@ -16,14 +22,18 @@ export interface UpdateNoteInput {
   title?: string;
   content?: string;
   keywords?: string[];
-  metadata?: Record<string, any>;
+  metadata: {
+    source: "telegram" | "web" | "api";
+    chat_id?: string;
+    ai_summary?: string;
+    language?: string;
+  };
 }
 
 export const noteOperations = {
   async createNote(input: CreateNoteInput) {
     const { parentId, ...noteData } = input;
 
-    // if parentId is provided, fetch parent's path to build new path
     let path = "";
     if (parentId) {
       const { data: parent } = await supabase
@@ -31,6 +41,7 @@ export const noteOperations = {
         .select("path")
         .eq("id", parentId)
         .single();
+
       path = parent ? `${parent.path}.${parentId}` : parentId;
     }
 
@@ -47,7 +58,7 @@ export const noteOperations = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Note;
   },
 
   async updateNote(input: UpdateNoteInput) {
@@ -55,13 +66,16 @@ export const noteOperations = {
 
     const { data, error } = await supabase
       .from("notes")
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Note;
   },
 
   async deleteNote(id: string) {
@@ -78,7 +92,7 @@ export const noteOperations = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as Note;
   },
 
   async getNotesByUserId(userId: string) {
@@ -89,7 +103,7 @@ export const noteOperations = {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return data;
+    return data as Note[];
   },
 
   async getChildNotes(parentId: string) {
@@ -100,6 +114,6 @@ export const noteOperations = {
       .order("created_at", { ascending: true });
 
     if (error) throw error;
-    return data;
+    return data as Note[];
   },
 };
