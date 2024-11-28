@@ -22,7 +22,7 @@ export function NoteForm({
   const [title, setTitle] = useState(initialNote?.title || "");
   const [content, setContent] = useState(initialNote?.content || "");
   const [keywords, setKeywords] = useState(
-    initialNote?.keywords.join(", ") || ""
+    initialNote?.keywords?.join(", ") || ""
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -27,7 +27,7 @@ export interface UpdateNoteInput {
     chat_id?: string;
     ai_summary?: string;
     language?: string;
-  };
+  } | null;
 }
 
 export const noteOperations = {

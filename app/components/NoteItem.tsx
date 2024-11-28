@@ -21,7 +21,7 @@ export function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">{note.title}</h3>
-            {note.keywords.length > 0 && (
+            {note.keywords && note.keywords.length > 0 && (
               <div className="flex gap-1 mt-1">
                 {note.keywords.map((keyword, index) => (
                   <span
@@ -52,14 +52,14 @@ export function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
         <p className="whitespace-pre-wrap text-sm text-gray-600">
           {note.content}
         </p>
-        {note.metadata.ai_summary && (
+        {note.metadata?.ai_summary && (
           <p className="mt-2 text-xs text-gray-500 italic">
             AI Summary: {note.metadata.ai_summary}
           </p>
         )}
       </CardContent>
       <CardFooter className="text-xs text-gray-500 flex justify-between">
-        <span>Source: {note.metadata.source}</span>
+        <span>Source: {note.metadata?.source}</span>
         <span>Last updated: {new Date(note.updated_at).toLocaleString()}</span>
       </CardFooter>
     </Card>
