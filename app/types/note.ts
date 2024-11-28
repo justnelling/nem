@@ -1,4 +1,4 @@
-type Note = {
+export type Note = {
   id: string;
   user_id: string;
   parent_id: string | null;
