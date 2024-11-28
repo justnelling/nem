@@ -32,7 +32,7 @@ export interface UpdateNoteInput {
 
 export const noteOperations = {
   async createNote(input: CreateNoteInput) {
-    const { parentId, ...noteData } = input;
+    const { userId, parentId, ...restData } = input;
 
     let path = "";
     if (parentId) {
@@ -45,20 +45,24 @@ export const noteOperations = {
       path = parent ? `${parent.path}.${parentId}` : parentId;
     }
 
+    // Create an object that exactly matches Supabase's Insert type
+    const insertData = {
+      ...restData,
+      user_id: userId, // changed from userId to user_id to match Supabase
+      parent_id: parentId || null, // ensure null if undefined
+      path: path || null, // ensure null if empty string
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from("notes")
-      .insert({
-        ...noteData,
-        parent_id: parentId,
-        path,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (error) throw error;
-    return data as Note;
+    return data;
   },
 
   async updateNote(input: UpdateNoteInput) {
