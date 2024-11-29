@@ -11,12 +11,13 @@ const bot = new Telegraf(BOT_TOKEN);
 bot.command("start", async (ctx) => {
   const username = ctx.message.from.first_name;
   await ctx.reply(
-    `Welcome to NEM 👋, ${username}!\n\n` +
-      `I can help you store, retrieve and map your notes. Think of me like your second brain!\n` +
+    `Welcome to NEM ⚛️, ${username}!\n\n` +
+      `I can help you store, retrieve and map your notes. Think of me like your second brain!\n\n` +
       `Here's how to get started:\n` +
-      `• Use /webapp to open the note-taking interface\n` +
+      `• Use /webapp to open the full note-taking interface\n` +
       `• Use /help to see all available commands\n` +
-      `• Use /stats to view your note statistics\n\n` +
+      `• Use /stats to view your note statistics\n` +
+      `• Use /latest to view your latest notes\n\n` +
       `Your notes are securely stored and accessible anytime!`
   );
 });
