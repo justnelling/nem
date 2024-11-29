@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "bot:dev": "tsx watch bot/index.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
