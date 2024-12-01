@@ -20,7 +20,27 @@ TBC -- code comments for changes to come back to. CTRL-F !
 
 **1/12/24**
 
-1. add functionality where they can select messages in chat, either with telegram bot or in other chats, and add it to notes capture (like hovering over message and selecting it)
+Features:
+
+1.  can now chat with note bot, will store messages as notes
+2.  can forward messages from other chats to note bot, will also store those as notes
+3.  can build thread / parent + child relationship for notes. but need to research supabase ltree more, and understand how it works.
+
+        - need to work on displaying the thread hierarchy nicer later
+
+    STRETCH
+
+    1. add functionality where they can select messages in chat, either with telegram bot or in other chats, and add it to notes capture (like long-pressing messages to allow added options)
+
+       need to come back to this. Bots can only access private chats with it + chats where we add the bot into the group chat --> TODO: this can be part of the making social phase of the project
+
+WIP challenges:
+
+    1. sending userId to supabase was facing issues because we initialised our supabase DB to set `userId` as uuid field instead of text string. For now, we've set userId to text field, and we're not setting RLS (row level security) to use supabase auth for userId. Might have to come back to this in future.
+
+    2. currently have doubling of metadata stored, in {metadata} + in source_chat_id / source_message_id. Should come back to rationalise in future.
+
+things we learnt debugging today: 1. .ENV: process.env reads from system env variables, and so we had problems reading in our .env file --> use dotenv.config() instead
 
 **27/11/24**
 

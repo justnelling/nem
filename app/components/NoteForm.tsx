@@ -7,14 +7,14 @@ import { noteOperations } from "@/app/lib/notes";
 import type { Note } from "@/app/types/note";
 
 interface NoteFormProps {
-  userId: string;
+  user_id: string;
   initialNote?: Note;
   onSubmit: () => void;
   onCancel?: () => void;
 }
 
 export function NoteForm({
-  userId,
+  user_id,
   initialNote,
   onSubmit,
   onCancel,
@@ -46,7 +46,7 @@ export function NoteForm({
         });
       } else {
         await noteOperations.createNote({
-          userId,
+          user_id,
           title,
           content,
           keywords: keywordArray,

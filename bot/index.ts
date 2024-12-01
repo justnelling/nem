@@ -1,8 +1,8 @@
 import { Telegraf } from "telegraf";
+import { message } from "telegraf/filters";
 import { noteOperations } from "@/app/lib/notes";
 import { BOT_TOKEN, WEBAPP_URL } from "./config";
 import { UserSession } from "./types";
-import { v4 as uuidv4 } from "uuid";
 
 if (!BOT_TOKEN) {
   throw new Error("TELEGRAM BOT_TOKEN must be provided");
@@ -10,7 +10,7 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 const userSessions = new Map<number, UserSession>();
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; //* our /record will default to 24hrs to save notes, if no /stop is supplied
 
 // start command
 bot.command("start", async (ctx) => {
@@ -19,6 +19,8 @@ bot.command("start", async (ctx) => {
     `Welcome to NEM ⚛️, ${username}!\n\n` +
       `I can help you store, retrieve and map your notes. Think of me like your second brain!\n\n` +
       `Here's how to get started:\n` +
+      `• Use /record to start recording chats as notes\n` +
+      `• Use /stop to stop recording\n` +
       `• Use /webapp to open the full note-taking interface\n` +
       `• Use /help to see all available commands\n` +
       `• Use /stats to view your note statistics\n` +
@@ -51,7 +53,7 @@ bot.command("record", async (ctx) => {
   });
 
   await ctx.reply(
-    "🎯 Recording started! Messages will be saved as notes for the next 24 hours.\nUse /stop if you want to end notes capture early."
+    "🎯 Recording started! Messages will be saved as notes.\nUse /stop when done."
   );
 });
 
@@ -62,15 +64,16 @@ bot.command("stop", async (ctx) => {
   await ctx.reply("🛑 Stopped recording notes.");
 });
 
-// on text (other messages)
-bot.on("message", async (ctx) => {
-  if (!("text" in ctx.message)) return;
+// handle normal text messages
+bot.on(message("text"), async (ctx) => {
   if (ctx.message.text.startsWith("/")) return;
 
   const userId = ctx.from.id;
   const session = userSessions.get(userId);
+  const isReply = !!ctx.message.reply_to_message;
 
-  if (!session?.isRecordingNotes) {
+  // Handle non-recording, non-reply messages
+  if (!session?.isRecordingNotes && !isReply) {
     const messageToSave = {
       id: ctx.message.message_id,
       text: ctx.message.text,
@@ -96,7 +99,7 @@ bot.on("message", async (ctx) => {
         error.response.error_code === 400 &&
         error.response.description.includes("message thread not found")
       ) {
-        // Handle the case where the message thread is not found
+        // Fallback without message_thread_id
         await ctx.reply("Save this as a note?", {
           reply_markup: {
             inline_keyboard: [
@@ -111,7 +114,6 @@ bot.on("message", async (ctx) => {
           },
         });
       } else {
-        // Handle other errors
         console.error("Error sending reply:", error);
         await ctx.reply("An error occurred. Please try again later.");
       }
@@ -119,25 +121,52 @@ bot.on("message", async (ctx) => {
     return;
   }
 
-  if (Date.now() - session.sessionStartTime > SESSION_TIMEOUT) {
+  // Check session timeout
+  if (
+    session?.sessionStartTime &&
+    Date.now() - session.sessionStartTime > SESSION_TIMEOUT
+  ) {
     userSessions.delete(userId);
     await ctx.reply("Recording session expired. Use /record to start new one.");
     return;
   }
 
   try {
-    await noteOperations.createNote({
-      userId: userId.toString(),
+    let parentNote = null;
+
+    // Find parent note if this is a reply
+    if (isReply && ctx.message.reply_to_message) {
+      parentNote = await noteOperations.getNoteBySourceMessage(
+        ctx.message.reply_to_message.chat.id.toString(),
+        ctx.message.reply_to_message.message_id
+      );
+    }
+
+    // Create the note
+    const newNote = await noteOperations.createNote({
+      user_id: userId.toString(),
       title: ctx.message.text.split("\n")[0].slice(0, 50),
       content: ctx.message.text,
-      metadata: { source: "telegram" },
+      metadata: {
+        source: "telegram",
+        chat_id: ctx.chat.id.toString(),
+      },
+      parent_id: parentNote?.id || null,
       source_chat_id: ctx.chat.id.toString(),
       source_message_id: ctx.message.message_id,
     });
-    await ctx.reply("✅ Saved as note!");
+
+    // Send appropriate response
+    if (parentNote) {
+      await ctx.reply(
+        `✅ Saved as note in thread!\n` + `Parent note: ${parentNote.title}`
+      );
+    } else {
+      await ctx.reply("✅ Saved as note!");
+    }
   } catch (error) {
     console.error("Error saving note: ", error);
-    await ctx.reply("ERR1");
+    await ctx.reply("Failed to save note. Please try again.");
   }
 });
 
@@ -149,7 +178,7 @@ bot.action(/save_(.+)/, async (ctx) => {
     const chatId = ctx.callbackQuery.message?.chat.id.toString();
 
     await noteOperations.createNote({
-      userId: userId,
+      user_id: userId,
       title: messageData.text.split("\n")[0].slice(0, 50),
       content: messageData.text,
       metadata: { source: "telegram" },
@@ -178,7 +207,7 @@ bot.action("start_recording", async (ctx) => {
 
   try {
     await noteOperations.createNote({
-      userId: userId.toString(),
+      user_id: userId.toString(),
       title: text.split("\n")[0].slice(0, 50),
       content: text,
       metadata: { source: "telegram" },

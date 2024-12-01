@@ -7,17 +7,17 @@ import { Card } from "@/components/ui/card";
 import type { Note } from "@/app/types/note";
 
 interface NoteListProps {
-  userId: string;
+  user_id: string;
 }
 
-export function NoteList({ userId }: NoteListProps) {
+export function NoteList({ user_id }: NoteListProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editingNote, setEditingNote] = useState<Note | null>(null); // tracks which note (if any) is currently being edited
   const [isLoading, setIsLoading] = useState(true);
 
   const loadNotes = async () => {
     try {
-      const fetchedNotes = await noteOperations.getNotesByUserId(userId);
+      const fetchedNotes = await noteOperations.getNotesByUserId(user_id);
       setNotes(fetchedNotes);
     } catch (error) {
       console.error(`Error loading notes: ${error}`);
@@ -28,7 +28,7 @@ export function NoteList({ userId }: NoteListProps) {
 
   useEffect(() => {
     loadNotes();
-  }, [userId]);
+  }, [user_id]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -54,7 +54,7 @@ export function NoteList({ userId }: NoteListProps) {
           {editingNote ? "Edit Note" : "Create New Note"}
         </h2>
         <NoteForm
-          userId={userId}
+          user_id={user_id}
           initialNote={editingNote || undefined}
           onSubmit={() => {
             loadNotes();

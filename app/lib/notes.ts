@@ -4,57 +4,72 @@ import { supabase } from "./supabase";
 import type { Note } from "@/app/types/note";
 
 export interface CreateNoteInput {
-  userId: string;
-  parentId?: string;
-  title: string;
-  content: string;
-  keywords?: string[];
-  metadata: {
-    source: "telegram" | "web" | "api";
-    chat_id?: string;
-    ai_summary?: string;
-    language?: string;
-  };
-  source_chat_id?: string;
-  source_message_id?: number;
-}
-
-export interface UpdateNoteInput {
-  id: string;
-  title?: string;
-  content?: string;
-  keywords?: string[];
-  metadata: {
+  user_id: string; // changed from user_id to match Note type
+  parent_id?: string | null; // optional and nullable
+  path?: string | null; // added to match Note type
+  title: string; // required
+  content: string; // required
+  embedding?: string | null; // optional and nullable
+  keywords?: string[] | null; // optional and nullable
+  metadata?: {
+    // optional and nullable
     source: "telegram" | "web" | "api";
     chat_id?: string;
     ai_summary?: string;
     language?: string;
   } | null;
-  source_chat_id?: string;
-  source_message_id?: number;
+  source_chat_id?: string | null; // optional and nullable
+  source_message_id?: number | null; // optional and nullable
+}
+
+export interface UpdateNoteInput {
+  id: string; // required for updates
+  parent_id?: string | null; // optional and nullable
+  path?: string | null; // optional and nullable
+  title?: string; // optional
+  content?: string; // optional
+  embedding?: string | null; // optional and nullable
+  keywords?: string[] | null; // optional and nullable
+  metadata?: {
+    // optional and nullable
+    source: "telegram" | "web" | "api";
+    chat_id?: string;
+    ai_summary?: string;
+    language?: string;
+  } | null;
+  source_chat_id?: string | null; // optional and nullable
+  source_message_id?: number | null; // optional and nullable
+}
+
+function uuidToBase36(uuid: string): string {
+  // Remove dashes and convert to base36
+  return BigInt("0x" + uuid.replace(/-/g, "")).toString(36);
 }
 
 export const noteOperations = {
   async createNote(input: CreateNoteInput) {
-    console.log("Create Note Input: ", input);
-    const { userId, parentId, ...noteData } = input;
+    const { user_id, parent_id, ...noteData } = input;
 
     let path = "";
-    if (parentId) {
+    if (parent_id) {
       const { data: parent } = await supabase
         .from("notes")
         .select("path")
-        .eq("id", parentId)
+        .eq("id", parent_id)
         .single();
 
-      path = parent ? `${parent.path}.${parentId}` : parentId;
+      const parent_id_base36 = uuidToBase36(parent_id);
+
+      path = parent?.path
+        ? `${parent.path}.${parent_id_base36}`
+        : `root.${parent_id_base36}`;
     }
 
     // Create an object that exactly matches Supabase's Insert type
     const insertData = {
       ...noteData,
-      user_id: userId, // changed from userId to user_id to match Supabase
-      parent_id: parentId || null, // ensure null if undefined
+      user_id: user_id, // changed from user_id to user_id to match Supabase
+      parent_id: parent_id || null, // ensure null if undefined
       path: path || null, // ensure null if empty string
       source_chat_id: noteData.source_chat_id || null,
       source_message_id: noteData.source_message_id || null,
@@ -106,25 +121,40 @@ export const noteOperations = {
     return data as Note;
   },
 
-  async getNotesByUserId(userId: string) {
+  async getNotesByUserId(user_id: string) {
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", user_id)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
     return data as Note[];
   },
 
-  async getChildNotes(parentId: string) {
+  async getChildNotes(parent_id: string) {
     const { data, error } = await supabase
       .from("notes")
       .select("*")
-      .eq("parent_id", parentId)
+      .eq("parent_id", parent_id)
       .order("created_at", { ascending: true });
 
     if (error) throw error;
     return data as Note[];
+  },
+
+  async getNoteBySourceMessage(
+    chatId: string,
+    messageId: number
+  ): Promise<Note | null> {
+    const { data, error } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("source_chat_id", chatId)
+      .eq("source_message_id", messageId)
+      .single();
+
+    if (error) throw error;
+    return data as Note;
   },
 };
