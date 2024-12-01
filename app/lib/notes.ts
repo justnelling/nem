@@ -36,6 +36,7 @@ export interface UpdateNoteInput {
 
 export const noteOperations = {
   async createNote(input: CreateNoteInput) {
+    console.log("Create Note Input: ", input);
     const { userId, parentId, ...noteData } = input;
 
     let path = "";

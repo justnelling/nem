@@ -2,6 +2,7 @@ import { Telegraf } from "telegraf";
 import { noteOperations } from "@/app/lib/notes";
 import { BOT_TOKEN, WEBAPP_URL } from "./config";
 import { UserSession } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 if (!BOT_TOKEN) {
   throw new Error("TELEGRAM BOT_TOKEN must be provided");
@@ -58,12 +59,11 @@ bot.command("record", async (ctx) => {
 bot.command("stop", async (ctx) => {
   const userId = ctx.from.id;
   userSessions.delete(userId);
-  await ctx.reply("✅ Stopped recording notes.");
+  await ctx.reply("🛑 Stopped recording notes.");
 });
 
 // on text (other messages)
 bot.on("message", async (ctx) => {
-  // type guard to ensure we have a text message
   if (!("text" in ctx.message)) return;
   if (ctx.message.text.startsWith("/")) return;
 
@@ -71,16 +71,51 @@ bot.on("message", async (ctx) => {
   const session = userSessions.get(userId);
 
   if (!session?.isRecordingNotes) {
-    await ctx.reply("Save this as a note?", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "Save", callback_data: `save_${ctx.message.message_id}` },
-            { text: "Start Recording", callback_data: "start_recording" },
+    const messageToSave = {
+      id: ctx.message.message_id,
+      text: ctx.message.text,
+    };
+
+    try {
+      await ctx.reply("Save this as a note?", {
+        message_thread_id: ctx.message.message_id,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Save",
+                callback_data: `save_${JSON.stringify(messageToSave)}`,
+              },
+              { text: "Start Recording", callback_data: "start_recording" },
+            ],
           ],
-        ],
-      },
-    });
+        },
+      });
+    } catch (error) {
+      if (
+        error.response.error_code === 400 &&
+        error.response.description.includes("message thread not found")
+      ) {
+        // Handle the case where the message thread is not found
+        await ctx.reply("Save this as a note?", {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "Save",
+                  callback_data: `save_${JSON.stringify(messageToSave)}`,
+                },
+                { text: "Start Recording", callback_data: "start_recording" },
+              ],
+            ],
+          },
+        });
+      } else {
+        // Handle other errors
+        console.error("Error sending reply:", error);
+        await ctx.reply("An error occurred. Please try again later.");
+      }
+    }
     return;
   }
 
@@ -102,35 +137,30 @@ bot.on("message", async (ctx) => {
     await ctx.reply("✅ Saved as note!");
   } catch (error) {
     console.error("Error saving note: ", error);
-    await ctx.reply("Sorry, I couldn't save your note. Please try again.");
+    await ctx.reply("ERR1");
   }
 });
 
 // the callbacks that we pass into on(message), when they select the inline keyboard actions
-bot.action(/save_(\d+)/, async (ctx) => {
-  if (!ctx.callbackQuery) return;
-  const text = ctx.text as unknown as string; // Force type assertion
-  if (!text) return;
-
-  const messageId = parseInt(ctx.match[1]);
-  const userId = ctx.callbackQuery.from.id;
-  const chatId = ctx.callbackQuery.message?.chat.id;
-
+bot.action(/save_(.+)/, async (ctx) => {
   try {
+    const messageData = JSON.parse(ctx.match[1]);
+    const userId = ctx.callbackQuery.from.id.toString();
+    const chatId = ctx.callbackQuery.message?.chat.id.toString();
+
     await noteOperations.createNote({
-      userId: userId.toString(),
-      title: text.split("\n")[0].slice(0, 50),
-      content: text,
+      userId: userId,
+      title: messageData.text.split("\n")[0].slice(0, 50),
+      content: messageData.text,
       metadata: { source: "telegram" },
-      source_chat_id: chatId?.toString(),
-      source_message_id: messageId,
+      source_chat_id: chatId,
+      source_message_id: messageData.id,
     });
+
     await ctx.editMessageText("✅ Saved as note!");
   } catch (error) {
     console.error("Error saving note:", error);
-    await ctx.editMessageText(
-      "Sorry, I couldn't save your note. Please try again."
-    );
+    await ctx.editMessageText("ERR2");
   }
 });
 
