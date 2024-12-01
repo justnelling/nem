@@ -22,19 +22,6 @@ export type Note = {
     language?: string;
   } | null; // Added null possibility to match Supabase's Json | null
   thread_depth: number | null; // Added null possibility to match Supabase
-};
-
-// Helper type for creating new notes
-export type CreateNoteInput = Omit<
-  Database["public"]["Tables"]["notes"]["Insert"],
-  "id"
-> & {
-  // Add any additional fields specific to creation
-};
-
-// Helper type for updating notes
-export type UpdateNoteInput = Partial<
-  Database["public"]["Tables"]["notes"]["Update"]
-> & {
-  id: string; // id is required for updates
+  source_chat_id: string | null;
+  source_message_id: number | null;
 };

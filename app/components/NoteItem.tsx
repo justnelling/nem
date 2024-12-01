@@ -5,6 +5,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Note } from "@/app/types/note";
 
@@ -15,6 +16,13 @@ interface NoteItemProps {
 }
 
 export function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
+  const getTelegramMessageLink = (chatId: string, messageId: number) => {
+    // remove the '-' prefix if it exists (required for private chats)
+    const formattedChatId = chatId.startsWith("-") ? chatId.slice(1) : chatId;
+
+    return `https://t.me/c/${formattedChatId}/${messageId}`;
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
@@ -56,6 +64,23 @@ export function NoteItem({ note, onEdit, onDelete }: NoteItemProps) {
           <p className="mt-2 text-xs text-gray-500 italic">
             AI Summary: {note.metadata.ai_summary}
           </p>
+        )}
+        {/* Add telegram chat context */}
+        {note.source_chat_id && note.source_message_id && (
+          <div className="mt-2 text-xs text-gray-500">
+            <a
+              href={getTelegramMessageLink(
+                note.source_chat_id,
+                note.source_message_id
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center hover:text-blue-500 transition-colors"
+            >
+              <Send className="w-3 h-3 mr-1" />
+              View source
+            </a>
+          </div>
         )}
       </CardContent>
       <CardFooter className="text-xs text-gray-500 flex justify-between">

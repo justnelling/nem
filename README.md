@@ -18,6 +18,10 @@ TBC -- code comments for changes to come back to. CTRL-F !
 
 #### Progress logs
 
+**1/12/24**
+
+1. add functionality where they can select messages in chat, either with telegram bot or in other chats, and add it to notes capture (like hovering over message and selecting it)
+
 **27/11/24**
 
 https://claude.ai/chat/c87934ec-744a-48b4-b003-896aa7678be2

@@ -19,6 +19,8 @@ export type Database = {
           metadata: Json | null
           parent_id: string | null
           path: unknown | null
+          source_chat_id: string | null
+          source_message_id: number | null
           thread_depth: number | null
           title: string
           updated_at: string
@@ -33,6 +35,8 @@ export type Database = {
           metadata?: Json | null
           parent_id?: string | null
           path?: unknown | null
+          source_chat_id?: string | null
+          source_message_id?: number | null
           thread_depth?: number | null
           title: string
           updated_at?: string
@@ -47,6 +51,8 @@ export type Database = {
           metadata?: Json | null
           parent_id?: string | null
           path?: unknown | null
+          source_chat_id?: string | null
+          source_message_id?: number | null
           thread_depth?: number | null
           title?: string
           updated_at?: string

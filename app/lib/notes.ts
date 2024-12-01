@@ -15,6 +15,8 @@ export interface CreateNoteInput {
     ai_summary?: string;
     language?: string;
   };
+  source_chat_id?: string;
+  source_message_id?: number;
 }
 
 export interface UpdateNoteInput {
@@ -28,11 +30,13 @@ export interface UpdateNoteInput {
     ai_summary?: string;
     language?: string;
   } | null;
+  source_chat_id?: string;
+  source_message_id?: number;
 }
 
 export const noteOperations = {
   async createNote(input: CreateNoteInput) {
-    const { userId, parentId, ...restData } = input;
+    const { userId, parentId, ...noteData } = input;
 
     let path = "";
     if (parentId) {
@@ -47,10 +51,12 @@ export const noteOperations = {
 
     // Create an object that exactly matches Supabase's Insert type
     const insertData = {
-      ...restData,
+      ...noteData,
       user_id: userId, // changed from userId to user_id to match Supabase
       parent_id: parentId || null, // ensure null if undefined
       path: path || null, // ensure null if empty string
+      source_chat_id: noteData.source_chat_id || null,
+      source_message_id: noteData.source_message_id || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
